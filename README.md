@@ -48,7 +48,7 @@ Explore real-time predictions using the Streamlit dashboard:
   streamlit run app.py
 
 📊 Model Performance
-* **Selected Best Model:** Gradient Boosting Regressor[cite: 5]
-* **Evaluation Metrics:** 
-  * **RMSE:** $7.29 \pm 0.77$[cite: 5]
-  * **R² Score:** $0.74 \pm 0.05$[cite: 5]
+Selected Best Model: Gradient Boosting Regressor
+Evaluation Metrics:
+  RMSE: 7.29 ± 0.77
+  R² Score: 0.74 ± 0.05
