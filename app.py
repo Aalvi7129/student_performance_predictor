@@ -46,7 +46,7 @@ else:
         extracurricular = st.slider("Extracurricular Hours", 0.0, 20.0, 3.0, 0.5)
         class_participation = st.slider("Class Participation Score", 0.0, 10.0, 5.0, 0.5)
         previous_backlogs = st.number_input("Previous Backlogs", 0, 10, 0)
-        post_exam_confidence = st.slider("Post-Exam Confidence (1-10)", 1, 10, 5)
+        # (Post-Exam Confidence slider removed to prevent data leakage)
 
     # Collect inputs into a DataFrame matching model training features
     input_data = pd.DataFrame({
@@ -57,8 +57,7 @@ else:
         "SleepHours": [sleep_hours],
         "ExtracurricularHours": [extracurricular],
         "ClassParticipation": [class_participation],
-        "PreviousBacklogs": [previous_backlogs],
-        "PostExamConfidence": [post_exam_confidence]
+        "PreviousBacklogs": [previous_backlogs]
     })
 
     st.divider()
