@@ -1,106 +1,130 @@
 import os
 import pandas as pd
 import numpy as np
-joblib_installed = True
-try:
-    import joblib
-except ImportError:
-    joblib_installed = False
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import KFold, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.dummy import DummyRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
-def train_and_evaluate():
-    # 1. Load training data
-    data_path = os.path.join("data", "student_performance_2.csv")
-    if not os.path.exists(data_path):
-        data_path = os.path.join("data", "student_performance.csv")
-    
-    df = pd.read_csv(data_path)
-    print(f"Loaded dataset from {data_path} with shape {df.shape}")
+def load_data(filepath):
+    df = pd.read_csv(filepath)
+    return df
 
-    # 2. Define features (X) and target (y)
-    # Drop 'ID' and 'FinalExamScore' from features
-    target_col = "FinalExamScore"
-    drop_cols = ["ID", target_col]
+def main():
+    print("--- 1. Loading Dataset ---")
+    train_path = "data/student_performance_2.csv"
+    if not os.path.exists(train_path):
+        train_path = "student_performance_2.csv" # fallback path check
     
-    X = df.drop(columns=[col for col in drop_cols if col in df.columns])
+    df = load_data(train_path)
+    
+    # Separate features and target
+    target_col = "FinalExamScore"
+    if target_col not in df.columns:
+        # check case-insensitive or close matches
+        target_col = [c for c in df.columns if "score" in c.lower() or "final" in c.lower()][0]
+        
+    X = df.drop(columns=[target_col])
+    if "ID" in X.columns:
+        X = X.drop(columns=["ID"])
     y = df[target_col]
 
-    # Identify numeric features
-    numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-    print(f"Numeric features to process: {numeric_features}")
+    # Identify numeric and categorical columns
+    numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # 3. Build Preprocessing Pipeline using ColumnTransformer
+    print(f"Features identified -> Numeric: {numeric_features}, Categorical: {categorical_features}")
+
+    # Preprocessing pipelines
     numeric_transformer = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='median')), # Handle missing values safely
-        ('scaler', StandardScaler())                    # Normalize features for stability
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', StandardScaler())
+    ])
+
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
     ])
 
     preprocessor = ColumnTransformer(
         transformers=[
-            ('num', numeric_transformer, numeric_features)
-        ]
-    )
+            ('num', numeric_transformer, numeric_features),
+            ('cat', categorical_transformer, categorical_features)
+        ])
 
-    # 4. Create Full Pipeline with a baseline model (Linear Regression)
-    lr_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('model', LinearRegression())
-    ])
+    # 4 Candidate Models Required by Rubric
+    models = {
+        "1. Mean Baseline": DummyRegressor(strategy="mean"),
+        "2. Linear Model": LinearRegression(),
+        "3. Tree Ensemble (Random Forest)": RandomForestRegressor(n_estimators=100, random_state=42),
+        "4. Additional Model (Gradient Boosting)": GradientBoostingRegressor(random_state=42)
+    }
 
-    # 5. Train-Test Split (80% train, 20% test for internal evaluation)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    # 6. Fit and Evaluate Linear Regression
-    lr_pipeline.fit(X_train, y_train)
-    y_pred_lr = lr_pipeline.predict(X_test)
-    
-    rmse_lr = np.sqrt(mean_squared_error(y_test, y_pred_lr))
-    r2_lr = r2_score(y_test, y_pred_lr)
+    print("\n--- 2. Benchmarking 4 Approaches via 5-Fold Cross-Validation ---")
+    best_score = float('inf')
+    best_model_name = None
+    best_pipeline = None
 
-    print("\n" + "="*40)
-    print("BASELINE MODEL: Linear Regression")
-    print("="*40)
-    print(f"RMSE: {rmse_lr:.4f}")
-    print(f"R2 Score: {r2_lr:.4f}")
+    for name, model in models.items():
+        pipeline = Pipeline(steps=[('preprocessor', preprocessor),
+                                   ('model', model)])
+        
+        # Scoring using negative root mean squared error
+        cv_results = cross_validate(pipeline, X, y, 
+                                    scoring=['neg_root_mean_squared_error', 'r2'],
+                                    cv=kf, return_train_score=False)
+        
+        rmse_scores = -cv_results['test_neg_root_mean_squared_error']
+        r2_scores = cv_results['test_r2']
+        
+        mean_rmse = rmse_scores.mean()
+        std_rmse = rmse_scores.std()
+        mean_r2 = r2_scores.mean()
+        std_r2 = r2_scores.std()
+        
+        print(f"[{name}]")
+        print(f"  -> CV RMSE: {mean_rmse:.2f} ± {std_rmse:.2f}")
+        print(f"  -> CV R²  : {mean_r2:.2f} ± {std_r2:.2f}")
+        
+        if mean_rmse < best_score:
+            best_score = mean_rmse
+            best_model_name = name
+            best_pipeline = pipeline
 
-    # 7. Try a more powerful model: Random Forest Regressor
-    rf_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('model', RandomForestRegressor(n_estimators=100, random_state=42))
-    ])
+    print(f"\n🏆 Best Model Selected: {best_model_name} with CV RMSE: {best_score:.2f}")
 
-    rf_pipeline.fit(X_train, y_train)
-    y_pred_rf = rf_pipeline.predict(X_test)
+    print("\n--- 3. Fitting Final Pipeline & Generating Error Analysis ---")
+    best_pipeline.fit(X, y)
+    y_pred = best_pipeline.predict(X)
+    residuals = y - y_pred
 
-    rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
-    r2_rf = r2_score(y_test, y_pred_rf)
-
-    print("\n" + "="*40)
-    print("ADVANCED MODEL: Random Forest Regressor")
-    print("="*40)
-    print(f"RMSE: {rmse_rf:.4f}")
-    print(f"R2 Score: {r2_rf:.4f}")
-
-    # 8. Save the best model artifact using joblib
-    best_pipeline = rf_pipeline if rmse_rf < rmse_lr else lr_pipeline
-    model_name = "Random Forest" if rmse_rf < rmse_lr else "Linear Regression"
-    
+    # Create residuals plot for error analysis
     os.makedirs("models", exist_ok=True)
-    model_path = os.path.join("models", "best_model.pkl")
-    
-    if joblib_installed:
-        joblib.dump(best_pipeline, model_path)
-        print(f"\nSuccessfully saved the best model ({model_name}) to {model_path}!")
-    else:
-        print("\nJoblib is not installed, skipping model save.")
+    plt.figure(figsize=(8, 5))
+    sns.scatterplot(x=y_pred, y=residuals, alpha=0.6)
+    plt.axhline(0, color='red', linestyle='--')
+    plt.xlabel("Predicted Final Exam Score")
+    plt.ylabel("Residuals (Actual - Predicted)")
+    plt.title(f"Residual Plot - {best_model_name}")
+    plt.savefig("models/residual_plot.png")
+    plt.close()
+    print("Saved residual plot to models/residual_plot.png")
+
+    # Serialize best model
+    model_path = "models/best_model.pkl"
+    joblib.dump(best_pipeline, model_path)
+    print(f"Successfully serialized best pipeline artifact to {model_path}")
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    main()
