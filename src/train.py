@@ -21,9 +21,9 @@ def load_data(filepath):
 
 def main():
     print("--- 1. Loading Dataset ---")
-    train_path = "data/student_performance_2.csv"
+    train_path = "data/student_performance.csv"
     if not os.path.exists(train_path):
-        train_path = "student_performance_2.csv" # fallback path check
+        train_path = "student_performance.csv" # fallback path check
     
     df = load_data(train_path)
     
