@@ -15,18 +15,20 @@ Prior to model training, an exploratory data audit was conducted to examine shap
 
 ---
 
-## 3. Model Comparison & Cross-Validation Rigor
-To satisfy evaluation rigor, a single train/test split was avoided in favor of **5-Fold Cross-Validation**. We benchmarked 4 distinct model architectures:
-
-| Approach | Architecture | CV RMSE ($\text{mean} \pm \text{std}$) | CV $R^2$ ($\text{mean} \pm \text{std}$) |
-| :--- | :--- | :--- | :--- |
-| **1** | Mean Baseline (`DummyRegressor`) | $15.42 \pm 1.12$ | $-0.02 \pm 0.05$ |
-| **2** | Linear Model (`LinearRegression`) | $8.78 \pm 0.65$ | $0.68 \pm 0.04$ |
-| **3** | Tree Ensemble (`RandomForestRegressor`) | **$8.06 \pm 0.52$** | **$0.73 \pm 0.03$** |
-| **4** | Additional Model (`GradientBoostingRegressor`) | $8.15 \pm 0.58$ | $0.72 \pm 0.03$ |
-
-**Selection:** The **Random Forest Regressor** was selected as the final production model due to achieving the lowest Cross-Validation RMSE ($\sim 8.06$) and highest explanatory variance ($R^2 \approx 0.73$).
-
+## 3. ### Model Benchmarking Results (5-Fold Cross-Validation)
+To satisfy evaluation rigor, we benchmarked four approaches using 5-Fold Cross-Validation:
+1. **Mean Baseline (DummyRegressor):** 
+   - RMSE: $14.36 \pm 1.01$[cite: 5]
+   - R²: $-0.00 \pm 0.00$[cite: 5]
+2. **Linear Model (LinearRegression):** 
+   - RMSE: $8.70 \pm 1.14$[cite: 5]
+   - R²: $0.63 \pm 0.09$[cite: 5]
+3. **Tree Ensemble (RandomForestRegressor):** 
+   - RMSE: $7.89 \pm 0.97$[cite: 5]
+   - R²: $0.70 \pm 0.06$[cite: 5]
+4. **Additional Model (GradientBoostingRegressor) - [Selected Best]:** 
+   - RMSE: **$7.29 \pm 0.77$**[cite: 5]
+   - R²: **$0.74 \pm 0.05$**[cite: 5]
 ---
 
 ## 4. Error Analysis & Residual Insights

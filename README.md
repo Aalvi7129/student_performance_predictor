@@ -48,5 +48,7 @@ Explore real-time predictions using the Streamlit dashboard:
   streamlit run app.py
 
 📊 Model Performance
-Baseline (Linear Regression): RMSE: ~8.78 | R^2: ~0.68
-Advanced (Random Forest Regressor): RMSE: ~8.06 | R^2: ~0.73 (Selected as Best Model)
+* **Selected Best Model:** Gradient Boosting Regressor[cite: 5]
+* **Evaluation Metrics:** 
+  * **RMSE:** $7.29 \pm 0.77$[cite: 5]
+  * **R² Score:** $0.74 \pm 0.05$[cite: 5]
