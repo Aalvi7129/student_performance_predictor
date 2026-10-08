@@ -8,7 +8,7 @@ An end-to-end machine learning pipeline and interactive web application designed
 ```text
 student-performance-predictor/
 ├── data/
-│   ├── student_performance_2.csv       # Training dataset with target variable
+│   ├── student_performance.csv       # Training dataset with target variable
 │   └── student_performance_test.csv    # Unseen test records for batch inference
 ├── models/
 │   └── best_model.pkl                  # Serialized Scikit-Learn pipeline artifact
