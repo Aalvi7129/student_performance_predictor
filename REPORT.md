@@ -6,10 +6,11 @@ This report details the design, benchmarking, evaluation, and deployment of an e
 ---
 
 ## 2. Feature Justification & Data Audit
-Prior to model training, an exploratory data audit was conducted to examine shape, missing value distributions, and target statistics. Each feature was evaluated based on temporal availability:
+Prior to model training, an exploratory data audit was conducted to examine shape, missing value distributions, and target statistics. Each feature was evaluated based on temporal availability and potential for data leakage:
 * **Attendance Rate (`Attendance`):** Retained. Known cumulatively prior to final exams and highly correlated with academic performance.
 * **Study Hours (`StudyHoursPerWeek`):** Retained. Direct indicator of student effort and exam preparation.
 * **Past Scores / Midterms (`PreviousScores`):** Retained. Serves as a strong baseline anchor for individual academic capability.
+* **Post-Exam Confidence (`PosteExamConfidence`):** **Dropped.** This feature introduces severe temporal data leakage because it can only be assessed *after* or *during* the exam. Including it would invalidate predictive utility prior to the test date.
 * **Extraneous Identifiers (`ID`):** Dropped. Purely nominal index values with no causal relationship to academic performance.
 
 ---
